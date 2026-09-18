@@ -64,6 +64,14 @@ enum TextSnippetSupport {
 
     static let systemSoundsPath = "/System/Library/Sounds"
 
+    /// The file behind a name from `alertSoundNames`: the same directory the
+    /// picker was listed from, so what it offers is what plays.
+    static func soundFileURL(for name: String) -> URL {
+        URL(fileURLWithPath: systemSoundsPath)
+            .appendingPathComponent(name)
+            .appendingPathExtension("aiff")
+    }
+
     /// The classic macOS alert sounds, used when the sounds directory
     /// cannot be read.
     static let fallbackAlertSoundNames = [

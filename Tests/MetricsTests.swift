@@ -16932,6 +16932,9 @@ struct MetricsTests {
                "the registered default is the shared constant, not a second copy of the name")
         expect(TextSnippetSupport.fallbackAlertSoundNames.contains(Defaults.defaultSnippetSoundName),
                "the default sound is one the fallback list offers")
+        expect(FileManager.default.fileExists(
+                atPath: TextSnippetSupport.soundFileURL(for: Defaults.defaultSnippetSoundName).path),
+               "the default sound is played from the file macOS ships for it")
         expect(Set(TextSnippetSupport.fallbackAlertSoundNames).count
                 == TextSnippetSupport.fallbackAlertSoundNames.count,
                "no duplicate names in the fallback list")

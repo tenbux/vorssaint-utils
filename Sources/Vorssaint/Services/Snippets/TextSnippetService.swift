@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vorssaint
 
 import AppKit
+import AudioToolbox
 import Carbon.HIToolbox
 import CoreGraphics
 
@@ -29,10 +30,9 @@ final class TextSnippetService {
     private var buffer = ""
     private var libraryVisible = false
     private var commandBarVisible = false
-    /// One retained instance so back-to-back expansions can stop and
-    /// restart it, and so no expansion pays for the first lookup's disk
-    /// read. nil means no sound plays.
-    private var expansionSound: NSSound?
+    /// Registered once when the preferences change, so no expansion pays
+    /// for the file read. nil means no sound plays.
+    private var expansionSound: AlertSound?
     /// Split by expansion mode at load time; the tap callback only scans.
     private var immediateSnippets: [TextSnippet] = []
     private var delimiterSnippets: [TextSnippet] = []
@@ -73,18 +73,16 @@ final class TextSnippetService {
     /// when nothing is retained, which is when the feature is off.
     func previewExpansionSound() {
         let retained = inputLock.withLock { expansionSound }
-        guard let sound = retained ?? Self.preferredExpansionSound() else { return }
-        sound.stop()
-        sound.play()
+        (retained ?? Self.preferredExpansionSound())?.play()
     }
 
     /// The sound the stored preference resolves to. Both the preview and
     /// the armed sound come through here, so they cannot disagree about
     /// which name wins when the stored one is not available.
-    private static func preferredExpansionSound() -> NSSound? {
+    private static func preferredExpansionSound() -> AlertSound? {
         TextSnippetSupport.resolvedSoundName(
             stored: UserDefaults.standard.string(forKey: DefaultsKey.snippetSoundName))
-            .flatMap { NSSound(named: $0) }
+            .flatMap { AlertSound(name: $0) }
     }
 
     /// Picks up a change to the sound preferences on their own. The picker
@@ -425,16 +423,10 @@ final class TextSnippetService {
         guard let sound = inputLock.withLock({ expansionSound }) else { return nil }
         return {
             // Async because the typed path calls this while the tap callback
-            // may still be blocked on the main queue, and starting playback
-            // can take long enough to push that callback past the timeout
-            // macOS disables the tap for.
-            DispatchQueue.main.async {
-                // play() is a no-op while this instance is still playing:
-                // stop it first so back-to-back expansions inside one
-                // sound's duration are still audible.
-                sound.stop()
-                sound.play()
-            }
+            // may still be blocked on the main queue, and asking the sound
+            // server to play is a round trip that must not sit inside the
+            // window macOS disables the tap for.
+            DispatchQueue.main.async { sound.play() }
         }
     }
 
@@ -504,5 +496,31 @@ final class TextSnippetService {
         }
         didExpand?()
         return true
+    }
+}
+
+/// One alert sound file registered with the system sound server, so it
+/// plays the way the Mac's own alert sounds do: through the sound effects
+/// output device, at the alert volume, with the screen flash Accessibility
+/// can ask for in place of a sound. NSSound would play it on the default
+/// output device at the main volume, ignoring all three.
+private final class AlertSound {
+    private let soundID: SystemSoundID
+
+    init?(name: String) {
+        var soundID: SystemSoundID = 0
+        let url = TextSnippetSupport.soundFileURL(for: name) as CFURL
+        guard AudioServicesCreateSystemSoundID(url, &soundID) == noErr else { return nil }
+        self.soundID = soundID
+    }
+
+    deinit {
+        AudioServicesDisposeSystemSoundID(soundID)
+    }
+
+    func play() {
+        // The completion holds this instance until playback ends, so a
+        // preview that resolved its own sound is not disposed mid-note.
+        AudioServicesPlayAlertSoundWithCompletion(soundID) { withExtendedLifetime(self) {} }
     }
 }
