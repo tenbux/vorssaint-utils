@@ -27,6 +27,10 @@ enum DefaultsKey {
     static let keepAwakeConnectedToPower = "keepAwakeConnectedToPower"
     static let keepAwakeRunningApps = "keepAwakeRunningApps"
     static let keepAwakeRunningAppBundleIDs = "keepAwakeRunningAppBundleIDs"
+    // Match mode over the automation conditions: false is Any (one matching
+    // condition starts a session), true is All (every enabled condition has
+    // to match, and losing one ends the session). Issue #1587.
+    static let keepAwakeAutomationRequireAll = "keepAwakeAutomationRequireAll"
     static let keepAwakePauseWhenLocked = "keepAwakePauseWhenLocked"
     static let keepAwakeMouseJiggleEnabled = "keepAwakeMouseJiggleEnabled"
     static let keepAwakeMouseJiggleInterval = "keepAwakeMouseJiggleIntervalMinutes"
@@ -658,6 +662,8 @@ enum DefaultsKey {
     static let textSnippets = "textSnippets"              // Data: [TextSnippet] JSON
     static let snippetLibraryEnabled = "snippetLibraryEnabled"
     static let snippetLibraryShortcut = "snippetLibraryShortcut"
+    static let snippetSoundEnabled = "snippetSoundEnabled"
+    static let snippetSoundName = "snippetSoundName"
 
     // Optional top-of-screen workspace and activity presentations.
     static let notchShowPlayingMusic = "notchShowPlayingMusic"
@@ -906,6 +912,7 @@ enum Defaults {
     static let allowedBatteryLimits = [0, 5, 10, 15, 20]
     static let allowedMonitorIntervals = [1, 2, 5]
     static let defaultKeyboardDebounceWindowMs = 5
+    static let defaultSnippetSoundName = "Tink"
     static let allowedKeyboardDebounceWindowRange = 0...500
     static let defaultMouseClickDebounceWindowMs = 25
     static let allowedMouseClickDebounceWindowRange = 5...100
@@ -941,6 +948,7 @@ enum Defaults {
         DefaultsKey.keepAwakeConnectedToPower: false,
         DefaultsKey.keepAwakeRunningApps: false,
         DefaultsKey.keepAwakeRunningAppBundleIDs: [String](),
+        DefaultsKey.keepAwakeAutomationRequireAll: false,
         DefaultsKey.keepAwakePauseWhenLocked: false,
         DefaultsKey.keepAwakeMouseJiggleEnabled: false,
         DefaultsKey.keepAwakeMouseJiggleInterval: 5,
@@ -1112,6 +1120,8 @@ enum Defaults {
         DefaultsKey.textSnippetsEnabled: false,
         DefaultsKey.snippetLibraryEnabled: false,
         DefaultsKey.snippetLibraryShortcut: GlobalShortcut.snippetLibraryDefault.storageValue,
+        DefaultsKey.snippetSoundEnabled: false,
+        DefaultsKey.snippetSoundName: defaultSnippetSoundName,
         DefaultsKey.notchShowPlayingMusic: true,
         DefaultsKey.notchIdleContent: NotchIdleContent.music.rawValue,
         DefaultsKey.notchHiddenControls: NotchControlItem.defaultHidden,
